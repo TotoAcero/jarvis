@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>JARVIS</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="data.enc.js"></script>
+<style>
+  :root {
+    --bg:#0a0a0a; --card:#141414; --card2:#1a1a1a; --border:#262626;
+    --gold:#d9b45b; --soft:#f0d68a; --deep:#a8863d; --cream:#e9e2cf;
+    --text:#f2efe6; --muted:#8f8a7d; --red:#b0563f;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 700px 400px at 50% -8%, rgba(217,180,91,.06), transparent);
+    color: var(--text); font-family: "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh; padding-bottom: 90px;
+  }
+
+  /* ===== PIN GATE ===== */
+  #gate {
+    position: fixed; inset: 0; background: var(--bg); z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
+  }
+  #gate .logo { width: 84px; height: 84px; }
+  #gate h1 { font-size: 26px; letter-spacing: 8px; font-weight: 800; color: #fff; }
+  #gate .sub { color: var(--muted); font-size: 12px; letter-spacing: 3px; text-transform: uppercase; }
+  #pin {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--gold); font-size: 28px; letter-spacing: 12px; text-align: center;
+    padding: 12px 0; width: 230px; outline: none;
+  }
+  #pin:focus { border-color: var(--deep); }
+  #gate button {
+    background: var(--gold); color: #141414; border: none; border-radius: 10px;
+    padding: 13px 44px; font-size: 14px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; cursor: pointer;
+  }
+  #gate label { color: var(--muted); font-size: 12px; display: flex; gap: 7px; align-items: center; }
+  #gateErr { color: var(--red); font-size: 13px; min-height: 18px; }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+  /* ===== APP ===== */
+  #app { display: none; padding: 18px clamp(12px, 3vw, 40px) 0; max-width: 1180px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .brand { font-size: 20px; font-weight: 800; letter-spacing: 6px; color: #fff; }
+  .brand .dot { color: var(--gold); }
+  .hdate { text-align: right; }
+  .hdate .d1 { font-size: 12px; font-weight: 700; color: var(--cream); }
+  .hdate .d2 { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .saludo { font-size: clamp(22px, 5vw, 30px); font-weight: 800; color: #fff; margin: 10px 0 2px; }
+  .saludo span { color: var(--gold); }
+
+  .mision {
+    margin: 12px 0 18px; padding: 14px 16px; border-radius: 14px;
+    background: linear-gradient(135deg, rgba(217,180,91,.12), rgba(217,180,91,.03));
+    border: 1px solid var(--deep);
+  }
+  .mision .m1 { font-size: 10px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; font-weight: 700; }
+  .mision .m2 { font-size: 16px; font-weight: 800; color: #fff; margin-top: 3px; text-transform: uppercase; letter-spacing: 1px; }
+  .mision .m3 { font-size: 12px; color: var(--cream); margin-top: 8px; font-style: italic; }
+
+  .brief { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 18px; }
+  .brief h2 { font-size: 11px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .brief h2::after { content:""; flex:1; height:1px; background: linear-gradient(90deg, var(--deep), transparent); }
+  .brief .row { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid #1f1f1f; font-size: 14px; }
+  .brief .row:last-child { border-bottom: none; }
+  .brief .ic { width: 26px; text-align: center; flex-shrink: 0; }
+  .brief .lbl { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 2px; }
+  .brief .txt { color: var(--text); margin-top: 2px; line-height: 1.45; }
+  .brief .txt b { color: var(--gold); }
+  .prio { display: flex; gap: 8px; align-items: baseline; margin-top: 5px; }
+  .prio .n { color: var(--gold); font-weight: 800; font-size: 13px; }
+  .prio.main .t { color: #fff; font-weight: 700; }
+  .jnote { margin-top: 10px; padding: 10px 12px; border-left: 2px solid var(--gold); background: var(--card2); border-radius: 0 10px 10px 0; font-size: 13px; color: var(--cream); font-style: italic; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 22px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 13px 10px 11px; text-align: center; }
+  .kpi .ico { width: 34px; height: 34px; margin: 0 auto 7px; border-radius: 50%; border: 1px solid var(--deep); display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(217,180,91,.06); }
+  .kpi .label { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; }
+  .kpi .value { font-size: 21px; font-weight: 800; margin-top: 4px; color: #fff; }
+  .kpi .value small { font-size: 12px; color: var(--cream); }
+  .kpi .sub { color: var(--muted); font-size: 10px; margin: 3px 0 8px; }
+  .kpi .track { height: 3px; border-radius: 2px; background: #262626; overflow: hidden; }
+  .kpi .fill { height: 100%; background: var(--gold); width: 0; transition: width 1s ease; }
+
+  section { margin-bottom: 26px; }
+  section > h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 12px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  section > h2::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--deep), transparent); }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; position: relative; min-height: 100px; }
+  .card h3 { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+  .chart-box { position: relative; height: 205px; }
+  .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; color: var(--muted); font-size: 12px; text-align: center; padding: 10px; }
+  .empty .icon { font-size: 20px; opacity: .6; }
+
+  .neon-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .neon-list li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; padding: 9px 12px; border-radius: 10px; background: var(--card2); border: 1px solid var(--border); font-size: 13px; }
+  .neon-list .val { color: var(--gold); font-weight: 700; white-space: nowrap; }
+  .neon-list .val.neg { color: var(--red); }
+  .neon-list small { color: var(--muted); }
+
+  .bars { display: flex; flex-direction: column; gap: 12px; }
+  .bar-item .bar-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; gap: 10px; }
+  .bar-item .pct { font-weight: 700; }
+  .bar-track { height: 7px; border-radius: 4px; background: #262626; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; width: 0; background: var(--fill, var(--gold)); transition: width 1s ease; }
+
+  .gold-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--deep); border-radius: 12px; padding: 12px 16px; margin-top: 4px; }
+  .gold-bar .left { color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+  .gold-bar .right { color: var(--cream); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+  footer { color: var(--muted); font-size: 11px; text-align: center; margin: 16px 0 8px; line-height: 1.7; }
+
+  #fab {
+    position: fixed; right: 18px; bottom: 18px; z-index: 50;
+    background: var(--gold); color: #141414; border-radius: 30px; border: none;
+    padding: 14px 22px; font-size: 14px; font-weight: 800; letter-spacing: 1px;
+    box-shadow: 0 4px 24px rgba(217,180,91,.35); cursor: pointer; text-decoration: none; display: none;
+  }
+  .no-lib { background: rgba(176,86,63,.12); border: 1px solid var(--red); color: #d98a75; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 12px; display: none; }
+</style>
+</head>
+<body>
+
+<!-- PIN -->
+<div id="gate">
+  <img class="logo" src="icon.svg" alt="">
+  <h1>JARVIS</h1>
+  <div class="sub">Centro de comando · Tobias</div>
+  <input id="pin" type="password" inputmode="numeric" maxlength="8" placeholder="••••••" autocomplete="off">
+  <label><input type="checkbox" id="remember"> Recordar en este dispositivo</label>
+  <div id="gateErr"></div>
+  <button onclick="unlock()">Entrar</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="brand">JARVIS<span class="dot">.</span></div>
+    <div class="hdate"><div class="d1" id="hoyFecha">—</div><div class="d2" id="hoyGen">datos: —</div></div>
+  </header>
+  <div class="saludo" id="saludo"></div>
+
+  <div class="mision">
+    <div class="m1">Misión</div>
+    <div class="m2" id="mision">—</div>
+    <div class="m3" id="quote"></div>
+  </div>
+
+  <div class="brief">
+    <h2>⚡ Briefing de hoy</h2>
+    <div class="row"><div class="ic">🏋️</div><div style="flex:1"><div class="lbl">Entrenamiento</div><div class="txt" id="entrenoHoy">—</div></div></div>
+    <div class="row"><div class="ic">🎯</div><div style="flex:1"><div class="lbl">Prioridades</div><div class="txt" id="prios">—</div></div></div>
+    <div class="row"><div class="ic">🍽️</div><div style="flex:1"><div class="lbl">Nutrición</div><div class="txt" id="nutriHoy">—</div></div></div>
+    <div id="jnote" class="jnote" style="display:none"></div>
+  </div>
+
+  <div class="no-lib" id="noLib">⚠️ Sin conexión para cargar los gráficos — el briefing y las listas funcionan igual.</div>
+  <div class="kpis" id="kpis"></div>
+
+  <section><h2>💰 Finanzas</h2><div class="grid">
+    <div class="card"><h3>Ingresos vs Gastos (ARS/mes)</h3><div class="chart-box"><canvas id="chFin"></canvas><div class="empty" id="emFin"></div></div></div>
+    <div class="card"><h3>Gastos por categoría — mes actual</h3><div class="chart-box"><canvas id="chCat"></canvas><div class="empty" id="emCat"></div></div></div>
+    <div class="card"><h3>Presupuesto usado</h3><div class="bars" id="budgetBars"></div><div class="empty" id="emBudget" style="position:static; min-height:70px;"></div></div>
+    <div class="card"><h3>Inversiones y deudas</h3><ul class="neon-list" id="invList"></ul><div class="empty" id="emInv" style="position:static; min-height:70px;"></div></div>
+  </div></section>
+
+  <section><h2>🏋️ Entrenamiento</h2><div class="grid">
+    <div class="card"><h3>Fuerza y cardio por semana</h3><div class="chart-box"><canvas id="chGym"></canvas><div class="empty" id="emGym"></div></div></div>
+    <div class="card"><h3>Récords personales</h3><ul class="neon-list" id="prList"></ul><div class="empty" id="emPr" style="position:static; min-height:70px;"></div></div>
+  </div></section>
+
+  <section><h2>🍽️ Alimentación</h2><div class="grid">
+    <div class="card"><h3>Calorías por día — últimos 14</h3><div class="chart-box"><canvas id="chKcal"></canvas><div class="empty" id="emKcal"></div></div></div>
+    <div class="card"><h3>Proteína por día (g)</h3><div class="chart-box"><canvas id="chProt"></canvas><div class="empty" id="emProt"></div></div></div>
+  </div></section>
+
+  <section><h2>🧘 Mente</h2><div class="grid">
+    <div class="card"><h3>Ánimo · Energía · Estrés</h3><div class="chart-box"><canvas id="chAnimo"></canvas><div class="empty" id="emAnimo"></div></div></div>
+    <div class="card"><h3>Sueño (horas)</h3><div class="chart-box"><canvas id="chSueno"></canvas><div class="empty" id="emSueno"></div></div></div>
+    <div class="card"><h3>Meditación (días/semana)</h3><div class="chart-box"><canvas id="chMed"></canvas><div class="empty" id="emMed"></div></div></div>
+  </div></section>
+
+  <section><h2>🎯 Objetivos</h2><div class="grid">
+    <div class="card"><h3>Avance de metas 2026</h3><div class="bars" id="goalBars"></div><div class="empty" id="emGoals" style="position:static; min-height:70px;"></div></div>
+  </div></section>
+
+  <div class="gold-bar"><div class="left">👑 La consistencia es la ventaja definitiva.</div><div class="right">Seguí construyendo →</div></div>
+  <footer>JARVIS v1 · Los datos se actualizan cuando Claude procesa tus registros.<br>Capturá al vuelo con el botón ➕ (issues de GitHub).</footer>
+</div>
+
+<a id="fab" href="#" target="_blank" rel="noopener">➕ Capturar</a>
+
+<script>
+const G = { gold:'#d9b45b', soft:'#f0d68a', deep:'#a8863d', cream:'#e9e2cf', gray:'#57534a', red:'#b0563f', muted:'#8f8a7d' };
+const QUOTES = [
+  "Foco en silencio. Que los resultados hagan el ruido.",
+  "La disciplina le gana a la motivación todos los días.",
+  "No necesitás más tiempo. Necesitás más foco.",
+  "Cada operación cerrada empieza con un día bien planificado.",
+  "El imperio se construye ladrillo por ladrillo. Hoy va uno más.",
+  "Nadie te va a pedir permiso para superarte. Vos tampoco.",
+  "Lo que se mide, mejora. Lo que se registra, se controla.",
+  "Un día enfocado vale más que una semana dispersa.",
+  "Tu competencia también se levantó hoy. La diferencia es qué hacés ahora.",
+  "El mejor vendedor de la zona también entrena, come bien y duerme.",
+  "Bajá la cabeza, trabajá duro. Hacé que pase.",
+  "Las comisiones grandes son consecuencia, no objetivo. El objetivo es el proceso.",
+  "Primero la rana: lo importante antes que lo urgente.",
+  "No estás cansado, estás desenfocado. Elegí una cosa y terminala.",
+  "Verse bien es un efecto secundario de la constancia.",
+  "El futuro empresario que querés ser está mirando lo que hacés hoy."
+];
+const ENTRENO = {
+  0: "Descanso — recuperá, mañana arranca la semana.",
+  1: "<b>PUSH</b> — banca (top set + back-offs), inclinado, crossover, hombros, laterales, tríceps. ~9:15 antes del trabajo.",
+  2: "<b>HIIT</b> — 20-25 min: 8-10 rondas de 30\" fuerte / 90\" suave. Corto e intenso.",
+  3: "<b>LEGS</b> — sentadilla (top set), RDL, prensa, extensiones, curl femoral, gemelos, abs.",
+  4: "Descanso — dormí bien, el viernes es Pull.",
+  5: "<b>PULL</b> — dominadas lastradas, remo, pullover, posterior, bíceps.",
+  6: "<b>Zona 2</b> — 40-45 min de cardio suave, o deporte si surge."
+};
+
+let charts = [];
+const $ = id => document.getElementById(id);
+const hasChart = typeof Chart !== 'undefined';
+const fmtARS = n => '$' + Math.round(n).toLocaleString('es-AR');
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+async function decrypt(pin) {
+  const B = window.JARVIS_BLOB;
+  if (!B) throw new Error("No hay datos");
+  const keyMat = await crypto.subtle.importKey("raw", new TextEncoder().encode(pin), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: b64(B.salt), iterations: B.iter, hash: "SHA-256" },
+    keyMat, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(B.iv) }, key, b64(B.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+async function unlock(saved) {
+  const pin = saved || $('pin').value.trim();
+  if (!pin) return;
+  try {
+    const data = await decrypt(pin);
+    if (!saved) {
+      sessionStorage.setItem("jpin", pin);
+      if ($('remember').checked) localStorage.setItem("jpin", pin);
+    }
+    $('gate').style.display = 'none';
+    $('app').style.display = 'block';
+    render(data);
+  } catch (e) {
+    if (saved) { localStorage.removeItem("jpin"); sessionStorage.removeItem("jpin"); return; }
+    $('gateErr').textContent = "PIN incorrecto";
+    $('pin').value = ""; $('pin').classList.add('shake');
+    setTimeout(() => $('pin').classList.remove('shake'), 400);
+  }
+}
+$('pin').addEventListener('keydown', e => { if (e.key === 'Enter') unlock(); });
+
+function baseOpts(extra = {}) {
+  return Object.assign({
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { labels: { color: G.cream, boxWidth: 10, font: { size: 10 } } },
+      tooltip: { backgroundColor: '#1a1a1a', borderColor: G.deep, borderWidth: 1, titleColor: '#fff', bodyColor: G.cream }
+    },
+    scales: {
+      x: { ticks: { color: G.muted, font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } },
+      y: { ticks: { color: G.muted, font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.06)' } }
+    }
+  }, extra);
+}
+const line = (color, a) => ({ borderColor: color, backgroundColor: color + (a || '26'), pointBackgroundColor: color, pointBorderColor: color, pointRadius: 2.5, borderWidth: 2, tension: .35 });
+function setEmpty(id, msg) { const el = $(id); if (!el) return; el.innerHTML = msg ? '<div class="icon">◈</div><div>' + msg + '</div>' : ''; el.style.display = msg ? 'flex' : 'none'; }
+function makeChart(cid, eid, isEmpty, msg, cfg) { if (isEmpty || !hasChart) { setEmpty(eid, isEmpty ? msg : ''); return; } setEmpty(eid, ''); charts.push(new Chart($(cid), cfg)); }
+function kpi(ico, label, value, sub, pct) {
+  const bar = pct == null ? '' : '<div class="track"><div class="fill" style="width:' + Math.max(0, Math.min(pct, 100)) + '%"></div></div>';
+  return '<div class="kpi"><div class="ico">' + ico + '</div><div class="label">' + label + '</div><div class="value">' + value + '</div><div class="sub">' + (sub || '&nbsp;') + '</div>' + bar + '</div>';
+}
+
+function render(d) {
+  charts.forEach(c => c.destroy()); charts = [];
+  const now = new Date();
+  const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  $('hoyFecha').textContent = dias[now.getDay()] + ' ' + now.getDate() + ' de ' + meses[now.getMonth()];
+  $('hoyGen').textContent = 'datos: ' + (d.generado || '—');
+  const h = now.getHours();
+  $('saludo').innerHTML = (h < 12 ? 'Buen día, ' : h < 20 ? 'Buenas tardes, ' : 'Buenas noches, ') + '<span>Tobias</span>.';
+  $('mision').textContent = (d.mision || 'Empresario inmobiliario exitoso').toUpperCase();
+  const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  $('quote').textContent = '"' + QUOTES[doy % QUOTES.length] + '"';
+  $('noLib').style.display = hasChart ? 'none' : 'block';
+
+  // Briefing
+  $('entrenoHoy').innerHTML = ENTRENO[now.getDay()];
+  const hoy = d.hoy || {};
+  const vigente = hoy.fecha === now.toISOString().slice(0, 10);
+  if (hoy.prioridades && hoy.prioridades.length && vigente) {
+    $('prios').innerHTML = hoy.prioridades.slice(0, 3).map((p, i) =>
+      '<div class="prio' + (i === 0 ? ' main' : '') + '"><span class="n">' + (i + 1) + '.</span><span class="t">' + p + '</span></div>').join('');
+  } else {
+    $('prios').innerHTML = '<span style="color:var(--muted)">Sin plan para hoy — decile a Claude: <b style="color:var(--gold)">"armame el día"</b></span>';
+  }
+  const p = d.perfil || {};
+  $('nutriHoy').innerHTML = 'Target: <b>' + (p.targetKcal || '—') + ' kcal</b> · <b>' + (p.targetProt || '—') + 'g proteína</b>. Whey post-entreno los días de gym.';
+  if (hoy.nota && vigente) { $('jnote').style.display = 'block'; $('jnote').textContent = '🤖 ' + hoy.nota; } else { $('jnote').style.display = 'none'; }
+
+  // FAB captura
+  const inbox = (d.config || {}).inboxUrl;
+  if (inbox) { $('fab').href = inbox; $('fab').style.display = 'block'; }
+
+  // KPIs
+  const f = d.finanzas, e = d.entrenamiento, a = d.alimentacion, m = d.mente;
+  const lastN = arr => arr && arr.length ? arr[arr.length - 1] : null;
+  const avg7 = arr => { const v = (arr || []).slice(-7).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+  const balance = f.meses.length ? lastN(f.ingresos) - lastN(f.gastos) : null;
+  const goalAvg = d.objetivos.length ? Math.round(d.objetivos.reduce((s, o) => s + o.avance, 0) / d.objetivos.length) : null;
+  const ses = lastN(e.sesiones), prot7 = avg7(a.prot), animo7 = avg7(m.animo), sueno7 = avg7(m.suenoHs);
+  $('kpis').innerHTML =
+    kpi('💰', 'Balance mes', balance == null ? '—' : fmtARS(balance), f.meses.length ? f.meses[f.meses.length - 1] : 'sin datos', balance == null ? null : (balance >= 0 ? 100 : 8)) +
+    kpi('🏋️', 'Gym semana', ses == null ? '—' : ses + '<small> ses.</small>', 'Meta: ' + (p.targetSesiones || 5), ses == null ? null : 100 * ses / (p.targetSesiones || 5)) +
+    kpi('🍽️', 'Prot. 7d', prot7 == null ? '—' : Math.round(prot7) + '<small>g</small>', 'Meta: ' + (p.targetProt || '—') + 'g', prot7 == null || !p.targetProt ? null : 100 * prot7 / p.targetProt) +
+    kpi('🧘', 'Ánimo 7d', animo7 == null ? '—' : animo7.toFixed(1), 'Sueño: ' + (sueno7 == null ? '—' : sueno7.toFixed(1) + 'hs'), animo7 == null ? null : 10 * animo7) +
+    kpi('🔥', 'Racha medit.', (m.rachaMeditacion || 0), 'días seguidos', Math.min(100, 100 * (m.rachaMeditacion || 0) / 7)) +
+    kpi('🎯', 'Metas', goalAvg == null ? '—' : goalAvg + '<small>%</small>', d.objetivos.length + ' activas', goalAvg);
+
+  // Finanzas
+  makeChart('chFin', 'emFin', !f.meses.length, 'Sin movimientos todavía', {
+    type: 'bar', data: { labels: f.meses, datasets: [
+      { label: 'Ingresos', data: f.ingresos, backgroundColor: G.gold + 'cc', borderColor: G.gold, borderWidth: 1, borderRadius: 4 },
+      { label: 'Gastos', data: f.gastos, backgroundColor: G.gray + '99', borderColor: G.gray, borderWidth: 1, borderRadius: 4 }]},
+    options: baseOpts()
+  });
+  makeChart('chCat', 'emCat', !f.categorias.labels.length, 'Sin gastos categorizados todavía', {
+    type: 'doughnut', data: { labels: f.categorias.labels, datasets: [{ data: f.categorias.montos,
+      backgroundColor: [G.gold, G.deep, G.soft, '#7a6330', G.cream, '#57482a', G.red], borderColor: '#141414', borderWidth: 3 }]},
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right', labels: { color: G.cream, boxWidth: 9, font: { size: 10 } } } } }
+  });
+  const bb = $('budgetBars'); bb.innerHTML = '';
+  if (f.categorias.labels.length && f.categorias.limites.some(l => l > 0)) {
+    setEmpty('emBudget', '');
+    f.categorias.labels.forEach((cat, i) => {
+      const lim = f.categorias.limites[i]; if (!lim) return;
+      const pct = Math.round(100 * f.categorias.montos[i] / lim);
+      const col = pct > 100 ? G.red : pct > 85 ? G.cream : G.gold;
+      bb.innerHTML += '<div class="bar-item"><div class="bar-head"><span>' + cat + '</span><span class="pct" style="color:' + col + '">' + pct + '%</span></div><div class="bar-track"><div class="bar-fill" style="--fill:' + col + '; width:' + Math.min(pct, 100) + '%"></div></div></div>';
+    });
+  } else setEmpty('emBudget', 'Definí tu presupuesto para ver esto');
+  const il = $('invList'); il.innerHTML = '';
+  if (f.inversiones.length || f.deudas.length) {
+    setEmpty('emInv', '');
+    f.inversiones.forEach(x => il.innerHTML += '<li><span>▲ ' + x.nombre + '</span><span class="val">' + (x.moneda === 'USD' ? 'US$' + x.valor.toLocaleString('es-AR') : fmtARS(x.valor)) + '</span></li>');
+    f.deudas.forEach(x => il.innerHTML += '<li><span>▼ ' + x.nombre + '</span><span class="val neg">' + x.cuotasRestantes + ' cuotas de ' + (x.moneda === 'USD' ? 'US$' + x.montoCuota : fmtARS(x.montoCuota)) + '</span></li>');
+  } else setEmpty('emInv', 'Sin inversiones ni deudas cargadas');
+
+  // Entrenamiento
+  makeChart('chGym', 'emGym', !e.semanas.length, 'Sin sesiones registradas todavía', {
+    type: 'bar', data: { labels: e.semanas, datasets: [
+      { label: 'Fuerza', data: e.sesiones, backgroundColor: G.gold + 'cc', borderColor: G.gold, borderWidth: 1, borderRadius: 4, yAxisID: 'y' },
+      { label: 'Cardio (min)', data: e.deporteMin, type: 'line', ...line(G.cream), yAxisID: 'y2' }]},
+    options: baseOpts({ scales: {
+      x: { ticks: { color: G.muted, font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } },
+      y: { position: 'left', ticks: { color: G.gold, stepSize: 1, font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.06)' } },
+      y2: { position: 'right', ticks: { color: G.cream, font: { size: 9 } }, grid: { display: false } } } })
+  });
+  const pl = $('prList'); pl.innerHTML = '';
+  if (e.prs.length) {
+    setEmpty('emPr', '');
+    e.prs.forEach(x => pl.innerHTML += '<li><span>🏆 ' + x.ejercicio + ' <small>' + x.fecha + '</small></span><span class="val">' + x.marca + '</span></li>');
+  } else setEmpty('emPr', 'Todavía no hay PRs — a construirlos 💪');
+
+  // Alimentación
+  const tgt = (len, val) => val ? [{ label: 'Target', data: Array(len).fill(val), borderColor: G.cream, borderDash: [6, 6], borderWidth: 1.5, pointRadius: 0, fill: false }] : [];
+  makeChart('chKcal', 'emKcal', !a.dias.length, 'Sin comidas registradas todavía', {
+    type: 'line', data: { labels: a.dias, datasets: [{ label: 'Kcal', data: a.kcal, ...line(G.gold), fill: true }, ...tgt(a.dias.length, p.targetKcal)] },
+    options: baseOpts()
+  });
+  makeChart('chProt', 'emProt', !a.dias.length, 'Sin comidas registradas todavía', {
+    type: 'line', data: { labels: a.dias, datasets: [{ label: 'Proteína (g)', data: a.prot, ...line(G.soft), fill: true }, ...tgt(a.dias.length, p.targetProt)] },
+    options: baseOpts()
+  });
+
+  // Mente
+  makeChart('chAnimo', 'emAnimo', !m.dias.length, 'Sin registros de ánimo todavía', {
+    type: 'line', data: { labels: m.dias, datasets: [
+      { label: 'Ánimo', data: m.animo, ...line(G.gold) },
+      { label: 'Energía', data: m.energia, ...line(G.cream) },
+      { label: 'Estrés', data: m.estres, ...line(G.red) }]},
+    options: baseOpts({ scales: { x: { ticks: { color: G.muted, font: { size: 9 } } }, y: { min: 0, max: 10, ticks: { color: G.muted, font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.06)' } } } })
+  });
+  makeChart('chSueno', 'emSueno', !m.dias.length, 'Sin registros de sueño todavía', {
+    type: 'bar', data: { labels: m.dias, datasets: [{ label: 'Horas', data: m.suenoHs,
+      backgroundColor: m.suenoHs.map(x => (x >= 7 ? G.gold : x >= 6 ? G.deep : G.red) + 'cc'),
+      borderColor: m.suenoHs.map(x => x >= 7 ? G.gold : x >= 6 ? G.deep : G.red), borderWidth: 1, borderRadius: 3 }]},
+    options: baseOpts({ plugins: { legend: { display: false } } })
+  });
+  makeChart('chMed', 'emMed', !m.meditacionSemanas.length, 'Sin sesiones de meditación todavía', {
+    type: 'bar', data: { labels: m.meditacionSemanas, datasets: [{ label: 'Días', data: m.meditacionDias,
+      backgroundColor: G.deep + 'cc', borderColor: G.gold, borderWidth: 1, borderRadius: 4 }]},
+    options: baseOpts({ plugins: { legend: { display: false } }, scales: { x: { ticks: { color: G.muted, font: { size: 9 } } }, y: { min: 0, max: 7, ticks: { color: G.muted, stepSize: 1, font: { size: 9 } } } } })
+  });
+
+  // Objetivos
+  const gb = $('goalBars'); gb.innerHTML = '';
+  if (d.objetivos.length) {
+    setEmpty('emGoals', '');
+    const cols = { verde: G.gold, amarillo: G.cream, rojo: G.red, cumplida: '#ffffff' };
+    d.objetivos.forEach(o => {
+      const col = cols[o.estado] || G.gold;
+      gb.innerHTML += '<div class="bar-item"><div class="bar-head"><span>' + o.nombre + '</span><span class="pct" style="color:' + col + '">' + o.avance + '%</span></div><div class="bar-track"><div class="bar-fill" style="--fill:' + col + '; width:' + o.avance + '%"></div></div></div>';
+    });
+  } else setEmpty('emGoals', 'Definí tus metas 2026');
+}
+
+// Auto-unlock si hay PIN guardado
+const saved = localStorage.getItem("jpin") || sessionStorage.getItem("jpin");
+if (saved) unlock(saved);
+</script>
+</body>
+</html>
