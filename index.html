@@ -350,7 +350,7 @@ function render(d) {
   const ol = $('opsList'); ol.innerHTML = '';
   if (ops.length) {
     setEmpty('emOps', '');
-    ops.forEach(o => ol.innerHTML += '<li><span>🏠 ' + o.propiedad + ' <small>' + o.etapa + (o.accion ? ' · próx: ' + o.accion : '') + '</small></span><span class="val">US$' + (o.honorarios || 0).toLocaleString('es-AR') + '</span></li>');
+    ops.forEach(o => ol.innerHTML += '<li><span>🏠 ' + o.propiedad + ' <small>' + o.etapa + (o.accion ? ' · próx: ' + o.accion : '') + '</small></span><span class="val">' + (o.honorarios ? 'US$' + o.honorarios.toLocaleString('es-AR') : 'hon. a definir') + '</span></li>');
   } else setEmpty('emOps', 'Sin operaciones cargadas — decile a Claude: "nueva operación: …"');
   const proy = inm.proyeccion || { meses: [], montos: [] };
   makeChart('chProy', 'emProy', !proy.meses.length, 'Se calcula sola desde el pipeline', {
