@@ -165,11 +165,17 @@
   <div class="no-lib" id="noLib">⚠️ Sin conexión para cargar los gráficos — el briefing y las listas funcionan igual.</div>
   <div class="kpis" id="kpis"></div>
 
+  <section><h2>🏢 Inmobiliaria</h2><div class="grid">
+    <div class="card"><h3>Pipeline de operaciones</h3><ul class="neon-list" id="opsList"></ul><div class="empty" id="emOps" style="position:static; min-height:70px;"></div></div>
+    <div class="card"><h3>Comisiones proyectadas (USD/mes, ponderadas)</h3><div class="chart-box"><canvas id="chProy"></canvas><div class="empty" id="emProy"></div></div></div>
+  </div></section>
+
   <section><h2>💰 Finanzas</h2><div class="grid">
     <div class="card"><h3>Ingresos vs Gastos (ARS/mes)</h3><div class="chart-box"><canvas id="chFin"></canvas><div class="empty" id="emFin"></div></div></div>
     <div class="card"><h3>Gastos por categoría — mes actual</h3><div class="chart-box"><canvas id="chCat"></canvas><div class="empty" id="emCat"></div></div></div>
     <div class="card"><h3>Presupuesto usado</h3><div class="bars" id="budgetBars"></div><div class="empty" id="emBudget" style="position:static; min-height:70px;"></div></div>
     <div class="card"><h3>Inversiones y deudas</h3><ul class="neon-list" id="invList"></ul><div class="empty" id="emInv" style="position:static; min-height:70px;"></div></div>
+    <div class="card"><h3>Patrimonio neto (USD)</h3><div class="chart-box"><canvas id="chPat"></canvas><div class="empty" id="emPat"></div></div></div>
   </div></section>
 
   <section><h2>🏋️ Entrenamiento</h2><div class="grid">
@@ -193,7 +199,7 @@
   </div></section>
 
   <div class="gold-bar"><div class="left">👑 La consistencia es la ventaja definitiva.</div><div class="right">Seguí construyendo →</div></div>
-  <footer>JARVIS v1 · Los datos se actualizan cuando Claude procesa tus registros.<br>Capturá al vuelo con el botón ➕ (issues de GitHub).</footer>
+  <footer>JARVIS v1.1 · El briefing se arma solo cada mañana; el resto se actualiza cuando Claude procesa tus registros.<br>Capturá al vuelo con el botón ➕ (issues de GitHub).</footer>
 </div>
 
 <a id="fab" href="#" target="_blank" rel="noopener">➕ Capturar</a>
@@ -219,13 +225,13 @@ const QUOTES = [
   "El futuro empresario que querés ser está mirando lo que hacés hoy."
 ];
 const ENTRENO = {
-  0: "Descanso — recuperá, mañana arranca la semana.",
-  1: "<b>PUSH</b> — banca (top set + back-offs), inclinado, crossover, hombros, laterales, tríceps. ~9:15 antes del trabajo.",
-  2: "<b>HIIT</b> — 20-25 min: 8-10 rondas de 30\" fuerte / 90\" suave. Corto e intenso.",
-  3: "<b>LEGS</b> — sentadilla (top set), RDL, prensa, extensiones, curl femoral, gemelos, abs.",
-  4: "Descanso — dormí bien, el viernes es Pull.",
-  5: "<b>PULL</b> — dominadas lastradas, remo, pullover, posterior, bíceps.",
-  6: "<b>Zona 2</b> — 40-45 min de cardio suave, o deporte si surge."
+  0: "Descanso — recuperá. (Si trabajaste el sábado: caminata suave hoy.)",
+  1: "<b>CALISTENIA</b> — clase personalizada 20:00-21:00. Whey al terminar.",
+  2: "<b>HIIT</b> — 20-25 min en casa (~20:00): 8 rondas de 30\" fuerte / 90\" suave. Indoor default, soga si está lindo.",
+  3: "<b>CALISTENIA</b> — clase personalizada 20:00-21:00.",
+  4: "Descanso — comodín para recuperar una clase caída. Noche libre (Sofi / guitarra).",
+  5: "<b>CALISTENIA</b> — clase personalizada 20:00-21:00. Cerrás la semana de fuerza.",
+  6: "<b>ZONA 2</b> — 40-45 min media mañana (caminata rápida, bici, trote suave) o deporte."
 };
 
 let charts = [];
@@ -304,7 +310,8 @@ function render(d) {
   // Briefing
   $('entrenoHoy').innerHTML = ENTRENO[now.getDay()];
   const hoy = d.hoy || {};
-  const vigente = hoy.fecha === now.toISOString().slice(0, 10);
+  const hoyLocal = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const vigente = hoy.fecha === hoyLocal;
   if (hoy.prioridades && hoy.prioridades.length && vigente) {
     $('prios').innerHTML = hoy.prioridades.slice(0, 3).map((p, i) =>
       '<div class="prio' + (i === 0 ? ' main' : '') + '"><span class="n">' + (i + 1) + '.</span><span class="t">' + p + '</span></div>').join('');
@@ -326,13 +333,30 @@ function render(d) {
   const balance = f.meses.length ? lastN(f.ingresos) - lastN(f.gastos) : null;
   const goalAvg = d.objetivos.length ? Math.round(d.objetivos.reduce((s, o) => s + o.avance, 0) / d.objetivos.length) : null;
   const ses = lastN(e.sesiones), prot7 = avg7(a.prot), animo7 = avg7(m.animo), sueno7 = avg7(m.suenoHs);
+  const r = d.rachas || {}; const ad = d.adherencia || {};
   $('kpis').innerHTML =
     kpi('💰', 'Balance mes', balance == null ? '—' : fmtARS(balance), f.meses.length ? f.meses[f.meses.length - 1] : 'sin datos', balance == null ? null : (balance >= 0 ? 100 : 8)) +
     kpi('🏋️', 'Gym semana', ses == null ? '—' : ses + '<small> ses.</small>', 'Meta: ' + (p.targetSesiones || 5), ses == null ? null : 100 * ses / (p.targetSesiones || 5)) +
     kpi('🍽️', 'Prot. 7d', prot7 == null ? '—' : Math.round(prot7) + '<small>g</small>', 'Meta: ' + (p.targetProt || '—') + 'g', prot7 == null || !p.targetProt ? null : 100 * prot7 / p.targetProt) +
-    kpi('🧘', 'Ánimo 7d', animo7 == null ? '—' : animo7.toFixed(1), 'Sueño: ' + (sueno7 == null ? '—' : sueno7.toFixed(1) + 'hs'), animo7 == null ? null : 10 * animo7) +
-    kpi('🔥', 'Racha medit.', (m.rachaMeditacion || 0), 'días seguidos', Math.min(100, 100 * (m.rachaMeditacion || 0) / 7)) +
+    kpi('🧠', 'Ánimo 7d', animo7 == null ? '—' : animo7.toFixed(1), 'Sueño: ' + (sueno7 == null ? '—' : sueno7.toFixed(1) + 'hs'), animo7 == null ? null : 10 * animo7) +
+    kpi('🔥', 'Racha registro', r.registro == null ? '—' : r.registro, 'días usando Jarvis', r.registro == null ? null : Math.min(100, 100 * r.registro / 7)) +
+    kpi('🧘', 'Racha medit.', (m.rachaMeditacion || 0), 'días seguidos', Math.min(100, 100 * (m.rachaMeditacion || 0) / 7)) +
+    kpi('📈', 'Adherencia', ad.score == null ? '—' : ad.score + '<small>%</small>', ad.semana || 'esta semana', ad.score) +
     kpi('🎯', 'Metas', goalAvg == null ? '—' : goalAvg + '<small>%</small>', d.objetivos.length + ' activas', goalAvg);
+
+  // Inmobiliaria
+  const inm = d.inmobiliaria || {};
+  const ops = inm.operaciones || [];
+  const ol = $('opsList'); ol.innerHTML = '';
+  if (ops.length) {
+    setEmpty('emOps', '');
+    ops.forEach(o => ol.innerHTML += '<li><span>🏠 ' + o.propiedad + ' <small>' + o.etapa + (o.accion ? ' · próx: ' + o.accion : '') + '</small></span><span class="val">US$' + (o.honorarios || 0).toLocaleString('es-AR') + '</span></li>');
+  } else setEmpty('emOps', 'Sin operaciones cargadas — decile a Claude: "nueva operación: …"');
+  const proy = inm.proyeccion || { meses: [], montos: [] };
+  makeChart('chProy', 'emProy', !proy.meses.length, 'Se calcula sola desde el pipeline', {
+    type: 'bar', data: { labels: proy.meses, datasets: [{ label: 'USD ponderado', data: proy.montos, backgroundColor: G.gold + 'cc', borderColor: G.gold, borderWidth: 1, borderRadius: 4 }]},
+    options: baseOpts({ plugins: { legend: { display: false } } })
+  });
 
   // Finanzas
   makeChart('chFin', 'emFin', !f.meses.length, 'Sin movimientos todavía', {
@@ -362,6 +386,11 @@ function render(d) {
     f.inversiones.forEach(x => il.innerHTML += '<li><span>▲ ' + x.nombre + '</span><span class="val">' + (x.moneda === 'USD' ? 'US$' + x.valor.toLocaleString('es-AR') : fmtARS(x.valor)) + '</span></li>');
     f.deudas.forEach(x => il.innerHTML += '<li><span>▼ ' + x.nombre + '</span><span class="val neg">' + x.cuotasRestantes + ' cuotas de ' + (x.moneda === 'USD' ? 'US$' + x.montoCuota : fmtARS(x.montoCuota)) + '</span></li>');
   } else setEmpty('emInv', 'Sin inversiones ni deudas cargadas');
+  const pat = f.patrimonio || { meses: [], netoUSD: [] };
+  makeChart('chPat', 'emPat', !pat.meses.length, 'Cargá tu primer snapshot de patrimonio', {
+    type: 'line', data: { labels: pat.meses, datasets: [{ label: 'Neto USD', data: pat.netoUSD, ...line(G.gold), fill: true }]},
+    options: baseOpts({ plugins: { legend: { display: false } } })
+  });
 
   // Entrenamiento
   makeChart('chGym', 'emGym', !e.semanas.length, 'Sin sesiones registradas todavía', {
